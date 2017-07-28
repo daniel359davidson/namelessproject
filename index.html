@@ -5,9 +5,19 @@
     <title>Hello</title>
     <link rel="stylesheet" href="css/master.css">
     <script src="../libs/createjs-2015.11.26.min.js"></script>
+    <script src="js/simulate.js" charset="utf-8"></script>
     <script src="js/main.js" charset="utf-8"></script>
   </head>
-  <body onload="init()">
-    <canvas id="canvas" width="1280" height="600"></canvas>
+  <body onload="Simulation.mapLoader(MapManager)">
+    <div class="wrapper">
+      <div class="container">
+        <canvas class="canvas" id="canvas" width="1280" height="600"></canvas>
+        <div class="discription">
+          <h3>Controls</h3>
+          <p>Scroll scene with arrow keys</p>
+        </div>
+      </div>
+      <div class="pillar"></div>
+    </div>
   </body>
 </html>

@@ -1,50 +1,139 @@
 function init() {
-  var stage;
-  function init() {
-    // create a new stage and point it at our canvas:
-    stage = new createjs.Stage("testCanvas");
+  // mapLoader(MapManager); // Loads map
 
-    // load the spritesheet image:
-    var image = new Image();
+  DrawManager.initScene();
+  DrawManager.setSpritesheet("assets/sprites/ground.png");
+
+  createjs.Ticker.setFPS(30);
+  createjs.Ticker.useRAF = true;
+  createjs.Ticker.addEventListener("tick", GameEventsController.handleTick);
+
+  ControllsManager.init();
+}
+
+// Code below wont work on local
+// Library "Simulate" must be loaded
+//
+// function mapLoader (mapManager) {
+//   var xhr = new XMLHttpRequest();
+//   xhr.open( 'GET', 'assets/maps/map.json', true);
+//
+//   xhr.onreadystatechange = function () {
+//
+//     if (xhr.status != 200) {
+//       alert(xhr.status + ': ' + xhr.statusText);
+//     } else {
+//       alert(xhr.responseText);
+//       mapManager.map = JSON.parse(xhr.responseText);
+//     }
+//   }
+//
+//   xhr.send();
+// }
+
+var DrawManager = {
+  spritesheet : {},
+  scene : {},
+  board : {},
+  initScene : function () {
+    DrawManager.scene   = new createjs.Stage("canvas");
+    DrawManager.board   = new createjs.Container();
+    DrawManager.board.x = 0;
+    DrawManager.board.y = 0;
+    DrawManager.scene.addChild(DrawManager.board);
+  },
+  setSpritesheet : function (url) {
+    var image    = new Image();
     image.onload = handleLoad;
-    image.src = "../_assets/art/tmw_desert_spacing.png";
+    image.src    = url;
+
+    function handleLoad (evt) {
+      DrawManager.spritesheet = new createjs.SpriteSheet(
+        {
+          images: [evt.target],
+          frames: {width: 32, height: 32, regX: 0, regY: 0, spacing: 2, margin: 0}
+        }
+      );
+
+      MapManager.drawMap();
+    }
+  },
+  drawTile : function (x, y, idx) {
+    var tile = new createjs.Sprite(DrawManager.spritesheet);
+    tile.gotoAndStop(idx);
+    tile.x = x;
+    tile.y = y;
+    DrawManager.board.addChild(tile);
+  },
+  update : function () {
+    DrawManager.scene.update();
   }
-  
-  function handleLoad(evt) {
-    // define the spritesheet:
-    var ss = new createjs.SpriteSheet({
-        images: [evt.target],
-        frames: {width:32, height:32, regX:0, regY:0, spacing:1, margin:1}
-      });
+}
 
-    // define a tile map:
-    var map = [
-      [ 1,  2,  2,  2,  2,  2,  2,  2,  2,  3],
-      [ 9, 10, 10, 10, 10, 10, 10, 10, 10, 11],
-      [ 9, 10, 10, 10, 20, 21, 10, 10, 10, 11],
-      [17, 18, 18, 18, 19, 17, 18, 18, 18, 19],
-      [30, 30, 31, 30,  6,  8, 46, 30, 40, 30],
-      [30, 30, 40, 32, 14, 16, 30, 30, 30, 30],
-      [30, 30, 30, 30, 14, 16, 48, 30, 31, 30],
-      [40, 30, 48, 31, 14, 16, 30, 40, 30, 30],
-      [30, 30, 30, 30, 14, 16, 30, 48, 32, 30],
-      [30, 30, 40, 30, 14, 16, 30, 30, 30, 30]
-    ]
-
-    // draw the map:
-    for (var row=0; row<map.length; row++) {
-      for (var col=0; col<map[0].length; col++) {
-        var idx = map[row][col] - 1;
-
-        var tile = new createjs.Sprite(ss);
-        tile.gotoAndStop(idx);
-        tile.x = 32*col;
-        tile.y = 32*row;
-        stage.addChild(tile);
+var MapManager = {
+  map : {},
+  drawMap : function () {
+    for (var i = 0; i < MapManager.map.width; i++) {
+      for (var j = 0; j < MapManager.map.height; j++) {
+        var x   = i * 32;
+        var y   = j * 32;
+        // Floor level draw
+        var idxFloor       = MapManager.map.layers[0].data[i + (j * MapManager.map.width)] - 1;
+        DrawManager.drawTile(x, y, idxFloor);
+        // Buildings level draw
+        // Walls
+        var idxWalls       = MapManager.map.layers[1].layers[0].data[i + (j * MapManager.map.width)] - 1;
+        DrawManager.drawTile(x, y, idxWalls);
+        // Windows and doors
+        var idxBldElements = MapManager.map.layers[1].layers[1].data[i + (j * MapManager.map.width)] - 1;
+        DrawManager.drawTile(x, y, idxBldElements);
+        // objects & decorations level
+        var idxDeco        = MapManager.map.layers[2].data[i + (j * MapManager.map.width)] - 1;
+        DrawManager.drawTile(x, y, idxDeco);
       }
     }
 
-    // update the stage to draw to screen:
-    stage.update();
+    DrawManager.update();
+  }
+}
+
+var ControllsManager = {
+  keysPressed : {
+      38: 0,
+      40: 0,
+      37: 0,
+      39: 0
+  },
+  init : function () {
+    document.addEventListener("keydown", function (e) {
+        ControllsManager.keysPressed[e.keyCode] = 1;
+
+    });
+
+    document.addEventListener("keyup", function (e) {
+        ControllsManager.keysPressed[e.keyCode] = 0;
+
+    });
+  },
+  detectKeys : function () {
+    if (ControllsManager.keysPressed[38] === 1) { // up
+      DrawManager.board.y += 2;
+    }
+    if (ControllsManager.keysPressed[40] === 1) { // down
+      DrawManager.board.y -= 2;
+    }
+    if (ControllsManager.keysPressed[37] === 1) { // left
+      DrawManager.board.x += 2;
+    }
+    if (ControllsManager.keysPressed[39] === 1) { // right
+      DrawManager.board.x -= 2;
+    }
+  }
+}
+
+var GameEventsController = {
+  handleTick : function () {
+    ControllsManager.detectKeys();
+    DrawManager.scene.update();
   }
 }
