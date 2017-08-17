@@ -12,11 +12,15 @@ var wsServer = new ws.Server({port:8081})
 wsServer.on('conection',function(ws){
      conectionID = Math.random();
      clients[conectionID] = ws;
-     console.log("новое соединение " + conect_id);
+     console.log("новое соединение " +  conectionID);
      ws.on('message', function(message) {
               for (var key in clients){
                    clients[key].send(message);
               }
+     });
+     ws.on('close', function() {
+          console.log('соединение закрыто ' +  conectionID);
+          delete clients[ conectionID];
      });
 })
 
